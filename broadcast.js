@@ -204,6 +204,12 @@ io.on('connection', function(socket)
 			socket.emit('flagDeleted', id);
 		}
 	});
+	
+	socket.on('updateLocation', function(location)
+	{
+		user.location = location;
+		socket.emit('locationUpdated');
+	});
 });
 
 function findGameByName(gameid)
