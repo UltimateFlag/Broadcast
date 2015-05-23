@@ -1,2 +1,2 @@
 #!/bin/bash
-node broadcast.js
+clear && node broadcast.js
