@@ -13,6 +13,7 @@ io.on('connection', function(socket)
 	{
 		user.name = name;
 		socket.emit('nameSet', name);
+		console.log(name, 'has logged in');
 	});
 	
 	socket.on('createGame', function(name, password)
