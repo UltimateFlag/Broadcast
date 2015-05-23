@@ -1,10 +1,10 @@
 var io = require('socket.io')(6969);
+var hat = require('hat');
 
 var games = [];
 
 io.on('connection', function(socket)
 {
-	console.log('Someone has connected.');
 	var user = {
 		coins: 0,
 		location: {'lat': 0, 'lon': 0}
@@ -48,6 +48,7 @@ io.on('connection', function(socket)
 		};
 		games.push(game);
 		socket.emit('gameCreated', game);
+		console.log(name, ' game has been created');
 	});
 	
 	socket.on('joinGame', function(gameid)
@@ -115,6 +116,7 @@ io.on('connection', function(socket)
 		}
 		socket.join(user.game + '-' + newteam);
 		io.to(user.game + '-all').emit('teamSwitched', user.name, newteam);
+		socket.emit('teamInfo', games[gameIndex].teams[newteam]);
 	});
 	
 	socket.on('getGames', function()
@@ -147,6 +149,60 @@ io.on('connection', function(socket)
 		}
 		games[gameIndex].teams[side].name = newname;
 		io.to(gameid + '-all').emit('teamNameSet', side, newname);
+	});
+	
+	socket.on('createFlag', function(side, loc)
+	{
+		var gameIndex = findGameIndexByName(user.game);
+		if(!gameIndex)
+		{
+			socket.emit('createFlagError', "Game ID not found.");
+			return;
+		}
+		if(games[gameIndex].creator !== user.name)
+		{
+			socket.emit('createFlagError', "You are not the game creator.");
+			return;
+		}
+		var flag = 
+		{
+			location: loc,
+			id: hat(),
+			capturePercentage: 0
+		};
+		games[gameIndex].teams[side].flags.push(flag);
+		io.to(user.game + '-' + side).emit('flagCreated', flag);
+		if(user.team !== side)
+		{
+			socket.emit('flagCreated', flag);
+		}
+	});
+	
+	socket.on('deleteFlag', function(side, id)
+	{
+		var gameIndex = findGameIndexByName(user.game);
+		if(!gameIndex)
+		{
+			socket.emit('deleteFlagError', "Game ID not found.");
+			return;
+		}
+		if(games[gameIndex].creator !== user.name)
+		{
+			socket.emit('deleteFlagError', "You are not the game creator.");
+			return;
+		}
+		var flagIndex = findIndexInArray('id', id, games[gameIndex].teams[side].flags);
+		if(!flagIndex)
+		{
+			socket.emit('deleteFlagError', "The flag was not found.");
+			return;
+		}
+		games[gameIndex].teams[side].flags.splice(flagIndex, 1);
+		io.to(user.game + '-' + side).emit('flagDeleted', id);
+		if(user.team !== side)
+		{
+			socket.emit('flagDeleted', id);
+		}
 	});
 });
 
