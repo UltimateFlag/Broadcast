@@ -4,6 +4,7 @@ var games = [];
 
 io.on('connection', function(socket)
 {
+	console.log('Someone has connected.');
 	var user = {
 		coins: 0,
 		location: {'lat': 0, 'lon': 0}
