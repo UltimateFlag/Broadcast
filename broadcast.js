@@ -289,6 +289,7 @@ function gameLogic(game)
 		for(var ii = 0; ii < team.flags.length; ii++)
 		{
 			var flag = team.flags[ii];
+			console.log('Team', i, 'flag', ii, games[gameIndex].teams[i].flags[ii].capturePercentage + '%');
 			for(var iii = 0; iii < team.players; iii++)
 			{
 				var player = team.player[iii];
