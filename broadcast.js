@@ -71,7 +71,7 @@ io.on('connection', function(socket)
 		io.to(gameid + '-all').emit('playerJoined', socket.user.name);
 		socket.join(gameid + '-all');
 		socket.join(gameid + '-spectators');
-		socket.emit('gameJoined', gameid);
+		socket.emit('gameJoined', games[gameIndex]);
 		socket.user.game = gameid;
 	});
 	
