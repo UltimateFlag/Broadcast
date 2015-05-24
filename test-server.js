@@ -1,9 +1,9 @@
-var socket = require('socket.io-client')('http://localhost:6969'); //('http://hollinsky.com:6969');
-var gameName = generateGameName();
+var socket = require('socket.io-client')('http://hollinsky.com:6969');
+var gameName = "mygame";
 
 socket.on('connect', function()
 {
-	socket.emit('setName', "Paul");
+	socket.emit('setName', "Paulo");
 	console.log('Logged in to the server.');
 	socket.on('nameSet', function(name)
 	{
