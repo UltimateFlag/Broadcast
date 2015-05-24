@@ -217,6 +217,7 @@ io.on('connection', function(socket)
 	socket.on('updateLocation', function(location)
 	{
 		socket.user.location = location;
+		console.log(socket.user.name + ":", location);
 		socket.emit('locationUpdated');
 	});
 	
