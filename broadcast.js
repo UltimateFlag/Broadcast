@@ -304,8 +304,11 @@ function gameLogic(game)
 		}
 		if(captured >= team.flags.length)
 		{
-			io.to(games[gameIndex].name + '-all').emit('gameWin', team.side === 1 ? 0 : 1, games[gameIndex]);
-			games.splice(gameIndex, 1);
+			if(games[gameIndex])
+			{
+				io.to(games[gameIndex].name + '-all').emit('gameWin', team.side === 1 ? 0 : 1, games[gameIndex]);
+				games.splice(gameIndex, 1);
+			}
 		}
 	}
 }
