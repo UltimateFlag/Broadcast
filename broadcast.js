@@ -244,6 +244,23 @@ io.on('connection', function(socket)
 			io.to(socket.user.game + '-all').emit('gameStart', games[gameIndex].started);
 		}, 10000);
 	});
+	
+	socket.on('endGame', function()
+	{
+		var gameIndex = findGameIndexByName(socket.user.game);
+		if(gameIndex === false)
+		{
+			socket.emit('startGameError', "Game ID not found.");
+			return;
+		}
+		if(games[gameIndex].creator !== socket.user.name)
+		{
+			socket.emit('startGameError', "You are not the game creator.");
+			return;
+		}
+		io.to(games[gameIndex].name + '-all').emit('gameEnd', games[gameIndex]);
+		games.splice(gameIndex, 1);
+	});
 });
 
 setInterval(function(params)
