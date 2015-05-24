@@ -295,7 +295,7 @@ function gameLogic(game)
 				var player = team.players[iii];
 				var distance = geolib.getDistance(player.location, flag.location);
 				console.log(player.name, distance);
-				if(distance < 75 + player.location.accuracy) // This number found using magic
+				if(distance < 110 + player.location.accuracy) // This number found using magic
 				{
 					games[gameIndex].teams[i].flags[ii].capturePercentage += 1.6667 * seconds;
 				}
