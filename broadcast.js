@@ -68,9 +68,9 @@ io.on('connection', function(socket)
 		}
 		socket.user.team = -1;
 		games[gameIndex].spectators.push(socket.user);
-		io.to(gameid + '-all').emit('playerJoined', socket.user.name);
-		socket.join(gameid + '-all');
-		socket.join(gameid + '-spectators');
+		io.to(gameid.toLowerCase() + '-all').emit('playerJoined', socket.user.name);
+		socket.join(gameid.toLowerCase() + '-all');
+		socket.join(gameid.toLowerCase() + '-spectators');
 		socket.emit('gameJoined', games[gameIndex]);
 		socket.user.game = gameid;
 	});
@@ -123,8 +123,8 @@ io.on('connection', function(socket)
 		{
 			games[gameIndex].teams[newteam].players.push(socket.user);
 		}
-		socket.join(socket.user.game + '-' + newteam);
-		io.to(socket.user.game + '-all').emit('teamSwitched', socket.user.name, games[gameIndex].teams[newteam], oldteam);
+		socket.join(socket.user.game.toLowerCase() + '-' + newteam);
+		io.to(socket.user.game.toLowerCase() + '-all').emit('teamSwitched', socket.user.name, games[gameIndex].teams[newteam], oldteam);
 		socket.emit('teamInfo', games[gameIndex].teams[newteam]);
 	});
 	
@@ -180,7 +180,7 @@ io.on('connection', function(socket)
 			capturePercentage: 0
 		};
 		games[gameIndex].teams[side].flags.push(flag);
-		io.to(socket.user.game + '-' + side).emit('flagCreated', flag);
+		io.to(socket.user.game.toLowerCase() + '-' + side).emit('flagCreated', flag);
 		if(socket.user.team !== side)
 		{
 			socket.emit('flagCreated', flag);
@@ -207,7 +207,7 @@ io.on('connection', function(socket)
 			return;
 		}
 		games[gameIndex].teams[side].flags.splice(flagIndex, 1);
-		io.to(socket.user.game + '-' + side).emit('flagDeleted', id);
+		io.to(socket.user.game.toLowerCase() + '-' + side).emit('flagDeleted', id);
 		if(socket.user.team !== side)
 		{
 			socket.emit('flagDeleted', id);
@@ -237,13 +237,13 @@ io.on('connection', function(socket)
 		for(var i = 0; i < 10; i++)
 		{
 			setTimeout(function(i){
-				io.to(socket.user.game + '-all').emit('gameStartingIn', 10-i);
+				io.to(socket.user.game.toLowerCase() + '-all').emit('gameStartingIn', 10-i);
 			}, 1000 * i, i);
 		}
 		setTimeout(function()
 		{
 			games[gameIndex].started = new Date();
-			io.to(socket.user.game + '-all').emit('gameStart', games[gameIndex].started);
+			io.to(socket.user.game.toLowerCase() + '-all').emit('gameStart', games[gameIndex].started);
 		}, 10000);
 	});
 	
@@ -260,7 +260,7 @@ io.on('connection', function(socket)
 			socket.emit('startGameError', "You are not the game creator.");
 			return;
 		}
-		io.to(games[gameIndex].name + '-all').emit('gameEnd', games[gameIndex]);
+		io.to(games[gameIndex].name.toLowerCase() + '-all').emit('gameEnd', games[gameIndex]);
 		games.splice(gameIndex, 1);
 	});
 });
@@ -305,13 +305,13 @@ function gameLogic(game)
 				captured += 1;
 			}
 		}
-		io.to(game.name + '-all').emit("teamTwoPercentage", games[gameIndex].teams[0].flags[0].capturePercentage);
-		io.to(game.name + '-all').emit("teamOnePercentage", games[gameIndex].teams[1].flags[0].capturePercentage);
+		io.to(game.name.toLowerCase() + '-all').emit("teamTwoPercentage", games[gameIndex].teams[0].flags[0].capturePercentage);
+		io.to(game.name.toLowerCase() + '-all').emit("teamOnePercentage", games[gameIndex].teams[1].flags[0].capturePercentage);
 		if(captured >= team.flags.length)
 		{
 			if(games[gameIndex])
 			{
-				io.to(game.name + '-all').emit('gameWin', team.side, games[gameIndex]);
+				io.to(game.name.toLowerCase() + '-all').emit('gameWin', team.side, games[gameIndex]);
 				games.splice(gameIndex, 1);
 				break;
 			}
