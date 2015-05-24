@@ -292,7 +292,7 @@ function gameLogic(game)
 			console.log('Team', i, 'flag', ii, games[gameIndex].teams[i].flags[ii].capturePercentage + '%');
 			for(var iii = 0; iii < team.players.length; iii++)
 			{
-				var player = team.player[iii];
+				var player = team.players[iii];
 				var distance = geolib.getDistance(player.location, flag.location);
 				console.log(team.player['iiii'].name, distance);
 				if(distance < 5 + player.location.accuracy)
