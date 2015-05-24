@@ -1,2 +1,2 @@
-# Broadcast
-Master Game Server
+# UltimateFlag Server
+codename broadcast
