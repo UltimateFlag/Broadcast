@@ -1,4 +1,5 @@
 var io = require('socket.io')(6969);
+var geolib = require('geolib');
 var hat = require('hat');
 
 var games = [];
@@ -44,7 +45,8 @@ io.on('connection', function(socket)
 					players: [],
 					score: 0
 				}
-			]
+			],
+			lastLogicUpdate: new Date().getTime()
 		};
 		games.push(game);
 		socket.emit('gameCreated', game);
@@ -257,7 +259,37 @@ setInterval(function(params)
 
 function gameLogic(game)
 {
-	console.log('Running game logic for', game.name);
+	var gameIndex = findGameIndexByName(game.name);
+	var thisTime = new Date().getTime();
+	var seconds = (thisTime - game.lastLogicUpdate) / 1000;
+	games[gameIndex].lastLogicUpdate = thisTime;
+	for(var i = 0; i < game.teams.length; i++)
+	{
+		var team = game.teams[i];
+		var captured = 0;
+		for(var ii = 0; ii < team.flags.length; ii++)
+		{
+			var flag = team.flags[ii];
+			for(var iii = 0; iii < team.players; iii++)
+			{
+				var player = team.player[iii];
+				var distance = geolib.getDistance(player.location, flag.location);
+				if(distance < 5 + player.location.accuracy)
+				{
+					games[gameIndex].teams[i].flags[ii].capturePercentage += 1.6667 * seconds;
+				}
+			}
+			if(games[gameIndex].teams[i].flags[ii].capturePercentage >= 100)
+			{
+				captured += 1;
+			}
+		}
+		if(captured >= team.flags.length)
+		{
+			io.to(games[gameIndex].name + '-all').emit('gameWin', team.side === 1 ? 0 : 1, games[gameIndex]);
+			games.splice(gameIndex, 1);
+		}
+	}
 }
 
 function findGameByName(gameid)
