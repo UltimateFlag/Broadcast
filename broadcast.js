@@ -154,7 +154,7 @@ io.on('connection', function(socket)
 			return;
 		}
 		games[gameIndex].teams[side].name = newname;
-		io.to(gameid + '-all').emit('teamNameSet', side, newname);
+		io.to(games[gameIndex].name + '-all').emit('teamNameSet', side, newname);
 	});
 	
 	socket.on('createFlag', function(side, loc)
