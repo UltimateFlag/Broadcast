@@ -12,12 +12,12 @@ socket.on('connect', function()
 		{
 			console.log('Created', game.name, 'with teams', game.teams[0].name, 'and', game.teams[1].name + '.');
 			socket.emit('joinGame', gameName, 'hackme');
-			socket.on('gameJoined', function(gameid)
+			socket.on('gameJoined', function(game)
 			{
 				socket.emit('switchTeams', 0);
-				socket.on('teamSwitched', function(switcher, team)
+				socket.on('teamSwitched', function(switcher, team, oldteam)
 				{
-					if(switcher === "Paul")
+					if(switcher === "Paulo")
 					{
 						console.log(switcher, 'has joined team', team.name);
 						socket.on('playerJoined', function(newPlayer)
