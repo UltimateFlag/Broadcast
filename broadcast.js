@@ -84,6 +84,7 @@ io.on('connection', function(socket)
 			socket.emit('switchTeamError', "Game ID not found.");
 			return;
 		}
+		var oldteam = socket.user.team;
 		if(socket.user.team === -1)
 		{
 			var userIndex = findIndexByName(socket.user.name, games[gameIndex].spectators);
@@ -123,7 +124,7 @@ io.on('connection', function(socket)
 			games[gameIndex].teams[newteam].players.push(socket.user);
 		}
 		socket.join(socket.user.game + '-' + newteam);
-		io.to(socket.user.game + '-all').emit('teamSwitched', socket.user.name, games[gameIndex].teams[newteam]);
+		io.to(socket.user.game + '-all').emit('teamSwitched', socket.user.name, games[gameIndex].teams[newteam], oldteam);
 		socket.emit('teamInfo', games[gameIndex].teams[newteam]);
 	});
 	
