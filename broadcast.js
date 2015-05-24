@@ -5,14 +5,14 @@ var games = [];
 
 io.on('connection', function(socket)
 {
-	var user = {
+	socket.user = {
 		coins: 0,
-		location: {'lat': 0, 'lon': 0}
+		location: {'latitude': 0, 'longitude': 0, 'accuracy': 0}
 	};
 	
 	socket.on('setName', function(name)
 	{
-		user.name = name;
+		socket.user.name = name;
 		socket.emit('nameSet', name);
 		console.log(name, 'has logged in');
 	});
@@ -25,9 +25,9 @@ io.on('connection', function(socket)
 			return;
 		}
 		var game = {
-			name: name.toUpperCase().toLowerCase(),
+			name: name.gameCase(),
 			password: password,
-			creator: user.name,
+			creator: socket.user.name,
 			spectators: [],
 			teams: [
 				{
@@ -51,71 +51,77 @@ io.on('connection', function(socket)
 		console.log(name, ' game has been created');
 	});
 	
-	socket.on('joinGame', function(gameid)
+	socket.on('joinGame', function(gameid, password)
 	{
-		var gameIndex = findGameIndexByName(gameid)
-		if(!gameIndex)
+		var gameIndex = findGameIndexByName(gameid.gameCase());
+		if(gameIndex === false)
 		{
 			socket.emit('joinGameError', "Game does not exist.");
 			return;
 		}
-		user.team = -1;
-		game[gameIndex].spectators.push(user);
-		io.to(gameid + '-all').emit('playerJoined', user.name);
+		if(games[gameIndex].password !== password)
+		{
+			socket.emit('joinGameError', "The password is not correct.");
+			return;
+		}
+		socket.user.team = -1;
+		games[gameIndex].spectators.push(socket.user);
+		io.to(gameid + '-all').emit('playerJoined', socket.user.name);
 		socket.join(gameid + '-all');
 		socket.join(gameid + '-spectators');
 		socket.emit('gameJoined', gameid);
-		user.game = gameid;
+		socket.user.game = gameid;
 	});
 	
 	socket.on('switchTeams', function(newteam)
 	{
-		var gameIndex = findGameIndexByName(user.game);
-		if(!gameIndex)
+		console.log(socket.user.name, newteam);
+		var gameIndex = findGameIndexByName(socket.user.game);
+		if(gameIndex === false)
 		{
 			socket.emit('switchTeamError', "Game ID not found.");
 			return;
 		}
-		if(user.team === -1)
+		if(socket.user.team === -1)
 		{
-			var userIndex = findIndexByName(games[gameIndex].spectators, user.name);
-			if(userIndex)
-			{
-				games[gameIndex].spectators.splice(userIndex, 1);
-				user.team = newteam;
-				socket.leave(user.game + '-spectators');
-			}
-			else
+			var userIndex = findIndexByName(socket.user.name, games[gameIndex].spectators);
+			if(userIndex === false)
 			{
 				socket.emit('switchTeamError', "Teams are screwed up for some reason.");
 				return;
+			}
+			else
+			{
+				games[gameIndex].spectators.splice(userIndex, 1);
+				socket.user.team = newteam;
+				socket.leave(socket.user.game + '-spectators');
 			}
 		}
 		else
 		{
-			var userIndex = findIndexByName(games[gameIndex].teams[user.team], user.name);
-			if(userIndex)
-			{
-				games[gameIndex].teams[user.team].splice(userIndex, 1);
-				user.team = newteam;
-				socket.leave(user.game + '-' + user.team);
-			}
-			else
+			var userIndex = findIndexByName(socket.user.name, games[gameIndex].teams[socket.user.team].players);
+			if(userIndex === false)
 			{
 				socket.emit('switchTeamError', "Teams are screwed up for some reason.");
 				return;
+			}
+			else
+			{
+				games[gameIndex].teams[socket.user.team].players.splice(userIndex, 1);
+				socket.user.team = newteam;
+				socket.leave(socket.user.game + '-' + socket.user.team);
 			}
 		}
 		if(newteam === -1)
 		{
-			games[gameIndex].spectators.push(user);
+			games[gameIndex].spectators.push(socket.user);
 		}
 		else
 		{
-			games[gameIndex].teams[newteam].push(user);
+			games[gameIndex].teams[newteam].players.push(socket.user);
 		}
-		socket.join(user.game + '-' + newteam);
-		io.to(user.game + '-all').emit('teamSwitched', user.name, newteam);
+		socket.join(socket.user.game + '-' + newteam);
+		io.to(socket.user.game + '-all').emit('teamSwitched', socket.user.name, games[gameIndex].teams[newteam]);
 		socket.emit('teamInfo', games[gameIndex].teams[newteam]);
 	});
 	
@@ -136,13 +142,13 @@ io.on('connection', function(socket)
 	
 	socket.on('setTeamName', function(side, newname)
 	{
-		var gameIndex = findGameIndexByName(user.game);
-		if(!gameIndex)
+		var gameIndex = findGameIndexByName(socket.user.game);
+		if(gameIndex === false)
 		{
 			socket.emit('setTeamNameError', "Game ID not found.");
 			return;
 		}
-		if(games[gameIndex].creator !== user.name)
+		if(games[gameIndex].creator !== socket.user.name)
 		{
 			socket.emit('setTeamNameError', "You are not the game creator.");
 			return;
@@ -153,13 +159,13 @@ io.on('connection', function(socket)
 	
 	socket.on('createFlag', function(side, loc)
 	{
-		var gameIndex = findGameIndexByName(user.game);
-		if(!gameIndex)
+		var gameIndex = findGameIndexByName(socket.user.game);
+		if(gameIndex === false)
 		{
 			socket.emit('createFlagError', "Game ID not found.");
 			return;
 		}
-		if(games[gameIndex].creator !== user.name)
+		if(games[gameIndex].creator !== socket.user.name)
 		{
 			socket.emit('createFlagError', "You are not the game creator.");
 			return;
@@ -171,8 +177,8 @@ io.on('connection', function(socket)
 			capturePercentage: 0
 		};
 		games[gameIndex].teams[side].flags.push(flag);
-		io.to(user.game + '-' + side).emit('flagCreated', flag);
-		if(user.team !== side)
+		io.to(socket.user.game + '-' + side).emit('flagCreated', flag);
+		if(socket.user.team !== side)
 		{
 			socket.emit('flagCreated', flag);
 		}
@@ -180,13 +186,13 @@ io.on('connection', function(socket)
 	
 	socket.on('deleteFlag', function(side, id)
 	{
-		var gameIndex = findGameIndexByName(user.game);
-		if(!gameIndex)
+		var gameIndex = findGameIndexByName(socket.user.game);
+		if(gameIndex === false)
 		{
 			socket.emit('deleteFlagError', "Game ID not found.");
 			return;
 		}
-		if(games[gameIndex].creator !== user.name)
+		if(games[gameIndex].creator !== socket.user.name)
 		{
 			socket.emit('deleteFlagError', "You are not the game creator.");
 			return;
@@ -198,8 +204,8 @@ io.on('connection', function(socket)
 			return;
 		}
 		games[gameIndex].teams[side].flags.splice(flagIndex, 1);
-		io.to(user.game + '-' + side).emit('flagDeleted', id);
-		if(user.team !== side)
+		io.to(socket.user.game + '-' + side).emit('flagDeleted', id);
+		if(socket.user.team !== side)
 		{
 			socket.emit('flagDeleted', id);
 		}
@@ -207,10 +213,52 @@ io.on('connection', function(socket)
 	
 	socket.on('updateLocation', function(location)
 	{
-		user.location = location;
+		socket.user.location = location;
 		socket.emit('locationUpdated');
 	});
+	
+	socket.on('startGame', function()
+	{
+		var gameIndex = findGameIndexByName(socket.user.game);
+		if(gameIndex === false)
+		{
+			socket.emit('startGameError', "Game ID not found.");
+			return;
+		}
+		if(games[gameIndex].creator !== socket.user.name)
+		{
+			socket.emit('startGameError', "You are not the game creator.");
+			return;
+		}
+		for(var i = 0; i < 10; i++)
+		{
+			setTimeout(function(i){
+				io.to(socket.user.game + '-all').emit('gameStartingIn', 10-i);
+			}, 1000 * i, i);
+		}
+		setTimeout(function()
+		{
+			games[gameIndex].started = new Date();
+			io.to(socket.user.game + '-all').emit('gameStart', games[gameIndex].started);
+		}, 10000);
+	});
 });
+
+setInterval(function(params)
+{
+	games.forEach(function(game)
+	{
+		if(game.started)
+		{
+			gameLogic(game);
+		}
+	});
+}, 250);
+
+function gameLogic(game)
+{
+	console.log('Running game logic for', game.name);
+}
 
 function findGameByName(gameid)
 {
@@ -219,7 +267,7 @@ function findGameByName(gameid)
 
 function findGameIndexByName(gameid)
 {
-	return findIndexByName(gameid, games);
+	return findIndexByName(gameid.gameCase(), games);
 }
 
 function findIndexByName(value, array)
@@ -243,9 +291,14 @@ function findIndexInArray(key, value, array)
 
 function generateTeamName()
 {
-	var adjs = ['Super', 'Amazing', 'Ballin'];
+	var adjs = ['Super', 'Amazing', 'Ballin', 'Brave', 'Charming', 'Diplomatic', 'Gentle', 'Diligent', 'Fearless', 'Passionate', 'Plucky', 'Powerful', 'Witty', 'Unrelenting', 'Merciful'];
 	var animals = ['Alligator', 'Crocodile', 'Alpaca', 'Ant', 'Antelope', 'Ape', 'Armadillo', 'Donkey', 'Baboon', 'Badger', 'Bat', 'Bear', 'Beaver', 'Bee', 'Beetle', 'Buffalo', 'Butterfly', 'Camel', 'Caribou', 'Cat', 'Cattle', 'Cheetah', 'Chimpanzee', 'Chinchilla', 'Cicada', 'Clam', 'Cockroach', 'Cod', 'Coyote', 'Crab', 'Cricket', 'Crow', 'Raven', 'Deer', 'Dinosaur', 'Dog', 'Dolphin', 'Porpoise', 'Duck', 'Eel', 'Elephant', 'Elk', 'Ferret', 'Fishfly', 'Fox', 'Frog', 'Toad', 'Gerbil', 'Giraffe', 'Gnat', 'Gnu', 'Wildebeest', 'Goat', 'Goldfish', 'Gorilla', 'Grasshopper', 'Hamster', 'Hare', 'Hedgehog', 'Herring', 'Hippopotamus', 'Hornet', 'Horse', 'Hound', 'Hyena', 'Insect', 'Jackal', 'Jellyfish', 'Kangaroo', 'Wallaby', 'Leopard', 'Lion', 'Lizard', 'Llama', 'Locust', 'Moose', 'Mosquito', 'Mouse', 'Rat', 'Mule', 'Muskrat', 'Otter', 'Ox', 'Oyster', 'Panda', 'Pig', 'Hog', 'Platypus', 'Porcupine', 'Pug', 'Rabbit', 'Raccoon', 'Reindeer', 'Rhinoceros', 'Salmon', 'Sardine', 'Shark', 'Sheep', 'Skunk', 'Snail', 'Snake', 'Spider', 'Squirrel', 'Termite', 'Tiger', 'Trout', 'Turtle', 'Tortoise', 'Walrus', 'Weasel', 'Whale', 'Wolf', 'Wombat', 'Woodchuck', 'Worm', 'Yak', 'Zebra'];
 	return (adjs[Math.floor(Math.random()*adjs.length)] + ' ' + animals[Math.floor(Math.random()*animals.length)] + 's');
 }
+
+String.prototype.gameCase = function()
+{
+	return this.split(' ').map(function(x){ return x.slice(0,1).toUpperCase() + x.slice(1).toUpperCase().toLowerCase(); }).join(' ');
+};
 
 console.log('UltimateFlag Broadcast Server Running on Port 6969');
