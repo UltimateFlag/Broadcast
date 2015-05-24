@@ -305,6 +305,8 @@ function gameLogic(game)
 				captured += 1;
 			}
 		}
+		io.to(games[gameIndex.name] + '-all').emit("teamOnePercentage", games[gameIndex].teams[0].flags[0].capturePercentage);
+		io.to(games[gameIndex.name] + '-all').emit("teamTwoPercentage", games[gameIndex].teams[1].flags[0].capturePercentage);
 		if(captured >= team.flags.length)
 		{
 			if(games[gameIndex])
@@ -313,8 +315,6 @@ function gameLogic(game)
 				games.splice(gameIndex, 1);
 			}
 		}
-		io.to(games[gameIndex.name] + '-all').emit("teamOnePercentage", games[gameIndex].teams[0].flags[0].capturePercentage);
-		io.to(games[gameIndex.name] + '-all').emit("teamTwoPercentage", games[gameIndex].teams[1].flags[0].capturePercentage);
 	}
 }
 
