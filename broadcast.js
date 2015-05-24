@@ -305,13 +305,13 @@ function gameLogic(game)
 				captured += 1;
 			}
 		}
-		io.to(games[gameIndex].name + '-all').emit("teamTwoPercentage", games[gameIndex].teams[0].flags[0].capturePercentage);
-		io.to(games[gameIndex].name + '-all').emit("teamOnePercentage", games[gameIndex].teams[1].flags[0].capturePercentage);
+		io.to(game.name + '-all').emit("teamTwoPercentage", games[gameIndex].teams[0].flags[0].capturePercentage);
+		io.to(game.name + '-all').emit("teamOnePercentage", games[gameIndex].teams[1].flags[0].capturePercentage);
 		if(captured >= team.flags.length)
 		{
 			if(games[gameIndex])
 			{
-				io.to(games[gameIndex].name + '-all').emit('gameWin', team.side, games[gameIndex]);
+				io.to(game.name + '-all').emit('gameWin', team.side, games[gameIndex]);
 				games.splice(gameIndex, 1);
 				break;
 			}
